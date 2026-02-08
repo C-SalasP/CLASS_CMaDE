@@ -1,3 +1,19 @@
+# CLASS_CMaDE
+
+This repository is a modified version of CLASS including the CMaDE (Compton Mass as Dark Energy) model interacting with CDM.
+
+In this implementation, the perturbation equations for the CMaDE model are explicitly derived and consistently implemented in both synchronous and Newtonian gauges, allowing for a fully numerical treatment based on the direct integration of the complete set of background and perturbation equations, without relying on approximation schemes.
+
+## Notes
+
+- Base code: CLASS (Cosmic Linear Anisotropy Solving System)
+- This fork adds the CMaDE implementation (background + perturbations).
+- For the original CLASS documentation, see below.
+
+
+
+
+
 CLASS: Cosmic Linear Anisotropy Solving System  {#mainpage}
 ==============================================
 
