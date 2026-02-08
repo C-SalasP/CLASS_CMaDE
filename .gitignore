@@ -1,0 +1,10 @@
+output/
+build/
+*.o
+*.a
+class
+classy
+classy.egg-info/
+log*
+.DS_Store
+Thumbs.db
