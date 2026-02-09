@@ -98,8 +98,7 @@ function run_CMaDE(Ω0g, Ω0ur, Ω0b, Ω0DM, Ω0de, h, k_c, Ω0k, z_pk, Q_coupli
     # --- Densidades iniciales ---
     Omega_ini_CMaDE_dm = $(rho_ini[4])
     Omega_ini_CMaDE_de = $(rho_ini[5])
-    Omega0_CMaDE_dm = $(Ω0DM)
-    Omega0_CMaDE_de = $(Ω0de)
+  
 
 
     # --- Densidades actuales ---
@@ -508,8 +507,6 @@ function run_CMaDE_Gauge(Ω0g, Ω0ur, Ω0b, Ω0DM, Ω0de, h, k_c, Ω0k, z_pk, Q_
     # --- Densidades iniciales ---
     Omega_ini_CMaDE_dm = $(rho_ini[4])
     Omega_ini_CMaDE_de = $(rho_ini[5])
-    Omega0_CMaDE_dm = $(Ω0DM)
-    Omega0_CMaDE_de = $(Ω0de)
 
 
     # --- Densidades actuales ---

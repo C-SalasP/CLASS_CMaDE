@@ -1932,6 +1932,9 @@ int background_checks(
     }
   }
 
+
+
+
   return _SUCCESS_;
 }
 
@@ -2949,10 +2952,22 @@ int background_output_budget(
     // Claudio Salas Pérez: 29/09/2025
     //Arreglos para revisar si el contenido de materia es correcto con CMaDE
     // Aqui solo agrego Materia oscura para CMaDE
-    if (pba->has_CMaDE == _TRUE_) {
-    class_print_species("CMaDE Dark Matter",CMaDE_dm);
-    budget_matter += pba->Omega0_CMaDE_dm;
-      }
+
+
+        if((pba->has_CMaDE == _TRUE_)) {
+      
+        int row    = pba->bt_size - 1;               // última fila = hoy
+        int offset = row * pba->bg_size;
+        double rho_CMaDE_dm_today   = pba->background_table[offset + pba->index_bg_CMaDE_rho_dm];
+        double rho_CMaDE_de_today   = pba->background_table[offset + pba->index_bg_CMaDE_rho_de];
+        double rho_crit_today   = pba->background_table[offset + pba->index_bg_rho_crit];
+          pba->Omega0_CMaDE_dm = rho_CMaDE_dm_today / rho_crit_today;
+          pba->Omega0_CMaDE_de = rho_CMaDE_de_today / rho_crit_today;
+          
+          class_print_species("CMaDE Dark Matter",CMaDE_dm);
+          budget_matter += pba->Omega0_CMaDE_dm;
+        }
+
 
 
 
@@ -3021,7 +3036,7 @@ int background_output_budget(
 
     // Claudio Salas Pérez: 29/09/2025
     //Aqui agrego la impresion de CMaDE
-    if (pba->has_CMaDE == _TRUE_) {
+    if ((pba->has_CMaDE == _TRUE_) && (pba->Omega0_CMaDE_de > 0.)) {
       class_print_species("CMaDE Dark Energy",CMaDE_de);
       budget_other += pba->Omega0_CMaDE_de;
     }
