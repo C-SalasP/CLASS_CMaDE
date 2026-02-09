@@ -2463,16 +2463,14 @@ if (pba->has_CMaDE == _TRUE_) {
   pba->K = -pba->Omega0_k*pow(pba->H0,2);
   if (pba->K > 0.){
     pba->sgnK = 1;
-    printf("You are using a closed universe with positive curvature K = %e\n",pba->K);
+    //printf("You are using a closed universe with positive curvature K = %e\n",pba->K);
   }
   else if (pba->K < 0.){
     pba->sgnK = -1;
-    printf("You are using an open universe with negative curvature K = %e\n",pba->K);
+    //printf("You are using an open universe with negative curvature K = %e\n",pba->K);
   }
 
-class_test((pba->Omega0_CMaDE_de <= 0.0) ||
-           (pba->Omega0_CMaDE_dm <= 0.0) ||
-           (pba->Omega_ini_CMaDE_de <= 0.0) ||
+class_test((pba->Omega_ini_CMaDE_de <= 0.0) ||
            (pba->Omega_ini_CMaDE_dm <= 0.0),
            errmsg,
            "CMaDE: invalid parameters. Require >0:\n"
@@ -2820,11 +2818,11 @@ class_test((pba->Omega0_CMaDE_de <= 0.0) ||
   pba->K = -pba->Omega0_k*pow(pba->H0,2);
   if (pba->K > 0.){
     pba->sgnK = 1;
-    printf("You are using a closed universe with positive curvature K = %e\n",pba->K);
+    //printf("You are using a closed universe with positive curvature K = %e\n",pba->K);
   }
   else if (pba->K < 0.){
     pba->sgnK = -1;
-    printf("You are using an open universe with negative curvature K = %e\n",pba->K);
+    //printf("You are using an open universe with negative curvature K = %e\n",pba->K);
   }
     }//Este if solo sirve para asignar algunos valores por defecto en caso de usar CMaDE
 
@@ -5978,7 +5976,7 @@ int input_default_params(struct background *pba,
 
   /** 4) CDM density */
   // Claudio Salas Pérez. 04/10/2025
-  // Ma adelante asignaremos valores deafault para CMaDE, cuando se tenga un shooting implementado en class. 
+  // Mas adelante asignaremos valores deafault para CMaDE, cuando se tenga un shooting implementado en class. 
   
   pba->Omega0_cdm = 0.1201075/pow(pba->h,2);
   
