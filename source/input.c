@@ -25,6 +25,12 @@
 #include "distortions.h"
 #include "output.h"
 
+//Esto despues hay que moverlo a un header en comun.h
+#define OMEGA_UNSET (-1.0)
+
+
+
+
 
 /**
  * Initialize input parameters from external file.
@@ -1292,17 +1298,31 @@ int input_get_guess(double *xguess,
 //Esto no significa que no se puedan encontrar casos donde el shooting falle,
 //Por lo que sigue pendiente de implementar un metodo mas sofisticado para encontrar el guess, por ejemplo usando la solucion de atraccion del modelo CMaDE o algo asi.
 case Omega0_CMaDE_dm:
-  xguess[index_guess] = log10( 2.860751054582809e41);
-  dxdy[index_guess]   = 1e-3;
+
+  if (ba.Omega_ini_CMaDE_dm != OMEGA_UNSET) {
+    xguess[index_guess] = log10(ba.Omega_ini_CMaDE_dm); /*Este lo dejo por si el usuario conoce la condicion inicial*/
+    printf("Using user-provided guess for Omega_ini_CMaDE_dm: %e\n", ba.Omega_ini_CMaDE_dm);
+  }
+  else {
+    xguess[index_guess] = log10(2.860751054582809e41); /* default. Este es el consegui a prueba y error */
+    printf("Using default guess for Omega_ini_CMaDE_dm: %e\n", 2.860751054582809e41); 
+  }
+
+  dxdy[index_guess] = 1e-3;
   break;
+
 
 case Omega0_CMaDE_de:
-  xguess[index_guess] = log10(0.18402218346100396);
-  dxdy[index_guess]   = 1e-3;
+
+  if (ba.Omega_ini_CMaDE_de != OMEGA_UNSET) {
+    xguess[index_guess] = log10(ba.Omega_ini_CMaDE_de);
+  }
+  else {
+    xguess[index_guess] = log10(0.18402218346100396);  /* default */
+  }
+
+  dxdy[index_guess] = 1e-3;
   break;
-
-
-
 
 
 
@@ -2549,6 +2569,25 @@ int input_read_parameters_species(struct file_content * pfc,
 //Entrada sencilla para las condiciones iniciales
 
 class_read_flag("has_CMaDE", pba->has_CMaDE);
+
+
+/* Auto-enable CMaDE if any CMaDE Omega is present in the .ini (silent) */
+if (pba->has_CMaDE == _FALSE_) {
+{
+  double tmp;
+  int f1 = _FALSE_, f2 = _FALSE_, f3 = _FALSE_, f4 = _FALSE_;
+
+  class_call(parser_read_double(pfc, "Omega0_CMaDE_dm", &tmp, &f1, errmsg), errmsg, errmsg);
+  class_call(parser_read_double(pfc, "Omega0_CMaDE_de", &tmp, &f2, errmsg), errmsg, errmsg);
+
+  if ((f1 == _TRUE_) || (f2 == _TRUE_) ) {
+    pba->has_CMaDE = _TRUE_;
+  }
+}
+}
+
+
+
 class_read_flag("save_perturbations", pba->save_perturbations);
 class_read_double("k_c", pba->k_c);
 class_read_double("Q_coupling", pba->Q_coupling);
@@ -2556,8 +2595,81 @@ class_read_double("Q_coupling", pba->Q_coupling);
 if (pba->has_CMaDE == _TRUE_) {
 
 
+  /* --- Check that Omega0_CMaDE_* are provided unless shooting will determine them --- */
+{
+  double tmp;
+  int f0_dm = _FALSE_;
+  int f0_de = _FALSE_;
+
+  class_call(parser_read_double(pfc, "Omega0_CMaDE_dm", &tmp, &f0_dm, errmsg),
+             errmsg, errmsg);
+  class_call(parser_read_double(pfc, "Omega0_CMaDE_de", &tmp, &f0_de, errmsg),
+             errmsg, errmsg);
+
+  /* If you require BOTH or NONE (recommended): */
+  class_test(f0_dm != f0_de,
+             errmsg,
+             "CMaDE: please provide BOTH 'Omega0_CMaDE_dm' and 'Omega0_CMaDE_de', or provide none (if shooting is used).");
+
+  /* Replace this with your real condition for shooting being enabled */
+  int shooting_active = _FALSE_;  /* <-- CHANGE THIS LINE to your real flag */
+
+  /* If none provided and no shooting => error */
+  class_test((f0_dm == _FALSE_) && (f0_de == _FALSE_) && (shooting_active == _FALSE_),
+             errmsg,
+             "CMaDE: missing required parameters.\n"
+             "You set has_CMaDE = yes, but you did not provide:\n"
+             "  Omega0_CMaDE_dm and Omega0_CMaDE_de\n"
+             "Either provide them in the .ini, or enable shooting so they can be determined automatically.");
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  pba->Omega_ini_CMaDE_dm = OMEGA_UNSET;
+  pba->Omega_ini_CMaDE_de = OMEGA_UNSET;
+
+  /* Optional: user-provided initial densities at a=1e-14 (for faster shooting) */
+  class_read_double("Omega_ini_CMaDE_dm", pba->Omega_ini_CMaDE_dm);
+  class_read_double("Omega_ini_CMaDE_de", pba->Omega_ini_CMaDE_de);
+
   class_read_double("log10_Omega_ini_CMaDE_dm", pba->log10_Omega_ini_CMaDE_dm);
   class_read_double("log10_Omega_ini_CMaDE_de", pba->log10_Omega_ini_CMaDE_de);
+
+
+
+
+
+int dm_set = (pba->Omega_ini_CMaDE_dm != OMEGA_UNSET);
+int de_set = (pba->Omega_ini_CMaDE_de != OMEGA_UNSET);
+
+/* Either both provided, or none */
+class_test(dm_set != de_set,
+           errmsg,
+           "CMaDE: please provide BOTH Omega_ini_CMaDE_dm and Omega_ini_CMaDE_de (at a=1e-14), or provide none.");
+
+/* If provided, they must be > 0 */
+if (dm_set && de_set) {
+  class_test((pba->Omega_ini_CMaDE_dm <= 0.0) || (pba->Omega_ini_CMaDE_de <= 0.0),
+             errmsg,
+             "CMaDE: invalid initial parameters (must be > 0).\n"
+             "  Omega_ini_CMaDE_dm=%e, Omega_ini_CMaDE_de=%e.",
+             pba->Omega_ini_CMaDE_dm, pba->Omega_ini_CMaDE_de);
+}
+
+
+
+
 
 
 
@@ -2578,18 +2690,7 @@ if (pba->has_CMaDE == _TRUE_) {
   }
 
  
-/*
-class_test((pba->Omega_ini_CMaDE_de <= 0.0) ||
-           (pba->Omega_ini_CMaDE_dm <= 0.0),
-           errmsg,
-           "CMaDE: invalid parameters. Require >0:\n"
-           "  Omega0_CMaDE_dm=%e, Omega0_CMaDE_de=%e,\n"
-           "  Omega_ini_CMaDE_dm=%e, Omega_ini_CMaDE_de=%e.",
-           pba->Omega0_CMaDE_dm, pba->Omega0_CMaDE_de,
-           pba->Omega_ini_CMaDE_dm, pba->Omega_ini_CMaDE_de);
-
-
-  
+  /*
   if((pba->Omega0_CMaDE_de <= 0.0)||(pba->Omega0_CMaDE_dm <= 0.0)||(pba->Omega_ini_CMaDE_de <= 0.0)||(pba->Omega_ini_CMaDE_dm <= 0.0 )){
     
     pba->Omega_ini_CMaDE_dm =  3.7986352766044805e41;
