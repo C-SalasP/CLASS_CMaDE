@@ -226,8 +226,12 @@ struct background
   // Tambien agrego lo necesario para las condiciones iniciales en a_0 y a_ini
   double Omega0_CMaDE_dm;               /**< \f$ \Omega_{0 CMaDe_dm} \f$:  dark matter */
   double Omega0_CMaDE_de;               /**< \f$ \Omega_{0 CMaDE_de} \f$: coupled dark energy */
+  double Omega0_CMaDE_ready_dm;         //Esto la uso para el fill de materaria
+  double Omega0_CMaDE_ready_de;         //Esto la uso para el fill de energia oscura
   double Omega_ini_CMaDE_dm;           /**< \f$ \Omega_{ini,CMaDE_dm} \f$:  initial value for CMaDE dark matter density */
   double Omega_ini_CMaDE_de;           /**< \f$ \Omega_{ini,CMaDE_de} \f$:  initial value for CMaDE dark energy density */
+  double log10_Omega_ini_CMaDE_dm;           /**< \f$ log10(\Omega_{ini,CMaDE_dm}) \f$:  logarithm of initial value for CMaDE dark matter density, used for shooting method */
+  double log10_Omega_ini_CMaDE_de;           /**< \f$ log10(\Omega_{ini,CMaDE_de}) \f$:  logarithm of initial value for CMaDE dark energy density, used for shooting method */
   double k_c;                           /**< coupling constant between dark matter and dark energy */
   double Q_coupling;                     
 

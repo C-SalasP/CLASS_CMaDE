@@ -2142,6 +2142,11 @@ int background_solve(
     printf(" -> age = %f Gyr\n",pba->age);
     printf(" -> conformal age = %f Mpc\n",pba->conformal_age);
     printf(" -> N_eff = %g (summed over all species that are non-relativistic at early times) \n",pba->Neff);
+
+
+
+
+
   }
 
   if (pba->background_verbose > 2) {
@@ -2286,8 +2291,15 @@ int background_initial_conditions(
   // Condiciones inciales para materia y energía oscura en el modelo CMaDE
   
   if(pba->has_CMaDE == _TRUE_){
-    pvecback_integration[pba->index_bi_CMaDE_rho_dm] = pba->Omega_ini_CMaDE_dm*pow(pba->H0,2); 
-    pvecback_integration[pba->index_bi_CMaDE_rho_de] = pba->Omega_ini_CMaDE_de *pow(pba->H0,2);
+
+
+
+  /* (opcional) clamps para evitar valores absurdos */
+  if (pow(10.0, pba->log10_Omega_ini_CMaDE_dm) < 0.) pba->log10_Omega_ini_CMaDE_dm = 0.;
+  if (pow(10.0, pba->log10_Omega_ini_CMaDE_de) < 0.) pba->log10_Omega_ini_CMaDE_de = 0.;
+  
+    pvecback_integration[pba->index_bi_CMaDE_rho_dm] = pow(10.0, pba->log10_Omega_ini_CMaDE_dm)*pow(pba->H0,2); 
+    pvecback_integration[pba->index_bi_CMaDE_rho_de] = pow(10.0, pba->log10_Omega_ini_CMaDE_de) *pow(pba->H0,2);
   }
   
 
@@ -2547,7 +2559,6 @@ int background_output_titles(
   //  Claudio Salas Pérez: 05/10/2025
     class_store_columntitle(titles,"(.)rho_CMaDE_dm",pba->has_CMaDE);
     class_store_columntitle(titles,"(.)rho_CMaDE_de",pba->has_CMaDE);
-    class_store_columntitle(titles,"(.)2pi^2/eta^2",pba->has_CMaDE);
 
   
 
@@ -2587,11 +2598,6 @@ int background_output_titles(
   class_store_columntitle(titles,"rel. alpha",pba->has_varconst);
   class_store_columntitle(titles,"rel. m_e",pba->has_varconst);
 
-
-  //  Claudio Salas Pérez: 29/09/2025 
-  class_store_columntitle(titles,"(.)w_CMaDE_dm",pba->has_CMaDE);
-  class_store_columntitle(titles,"(.)w_CMaDE_de",pba->has_CMaDE);
- 
 
   return _SUCCESS_;
 }
@@ -2635,7 +2641,6 @@ int background_output_data(
 
     class_store_double(dataptr,pvecback[pba->index_bg_CMaDE_rho_dm],pba->has_CMaDE,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_CMaDE_rho_de],pba->has_CMaDE,storeidx);
-    class_store_double(dataptr,2*pow(_PI_,2)/pow((pba->conformal_age-pvecback[pba->index_bg_conf_distance]),2)/3,pba->has_CMaDE,storeidx);
 
 
     if (pba->has_ncdm == _TRUE_) {
@@ -2672,8 +2677,6 @@ int background_output_data(
     class_store_double(dataptr,pvecback[pba->index_bg_varc_alpha],pba->has_varconst,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_varc_me],pba->has_varconst,storeidx);
 
-    class_store_double(dataptr,pvecback[pba->index_bg_CMaDE_W_eff_dm],pba->has_CMaDE,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_CMaDE_W_eff_de],pba->has_CMaDE,storeidx);
   }
 
   return _SUCCESS_;
@@ -2956,13 +2959,13 @@ int background_output_budget(
 
         if((pba->has_CMaDE == _TRUE_)) {
       
-        int row    = pba->bt_size - 1;               // última fila = hoy
+        int row    = pba->bt_size -1;               // última fila = hoy
         int offset = row * pba->bg_size;
         double rho_CMaDE_dm_today   = pba->background_table[offset + pba->index_bg_CMaDE_rho_dm];
         double rho_CMaDE_de_today   = pba->background_table[offset + pba->index_bg_CMaDE_rho_de];
         double rho_crit_today   = pba->background_table[offset + pba->index_bg_rho_crit];
-          pba->Omega0_CMaDE_dm = rho_CMaDE_dm_today / rho_crit_today;
-          pba->Omega0_CMaDE_de = rho_CMaDE_de_today / rho_crit_today;
+          pba->Omega0_CMaDE_dm = rho_CMaDE_dm_today /  (pba->H0*pba->H0);
+          pba->Omega0_CMaDE_de = rho_CMaDE_de_today /  (pba->H0*pba->H0);
           
           class_print_species("CMaDE Dark Matter",CMaDE_dm);
           budget_matter += pba->Omega0_CMaDE_dm;

@@ -25,6 +25,7 @@
 #include "distortions.h"
 #include "output.h"
 
+
 /**
  * Initialize input parameters from external file.
  *
@@ -534,7 +535,9 @@ int input_shooting(struct file_content * pfc,
                                        "omega_dcdmdr",
                                        "Omega_scf",
                                        "Omega_ini_dcdm",
-                                       "omega_ini_dcdm"};
+                                       "omega_ini_dcdm",
+                                       "Omega0_CMaDE_dm",
+                                       "Omega0_CMaDE_de"};
 
   /* array of corresponding parameters that must be adjusted in order to meet the target (= unknown parameters) */
   char * const unknown_namestrings[] = {"h",                        /* unknown param for target '100*theta_s' */
@@ -544,7 +547,9 @@ int input_shooting(struct file_content * pfc,
                                         "omega_ini_dcdm",           /* unknown param for target 'omega_dcdmdr' */
                                         "scf_shooting_parameter",   /* unknown param for target 'Omega_scf' */
                                         "Omega_dcdmdr",             /* unknown param for target 'Omega_ini_dcdm' */
-                                        "omega_dcdmdr"};             /* unknown param for target 'omega_ini_dcdm' */
+                                        "omega_dcdmdr",
+                                        "log10_Omega_ini_CMaDE_dm",       /* unknown param for target 'Omega0_CMaDE_dm' */
+                                        "log10_Omega_ini_CMaDE_de"};      /* unknown param for target 'omega_ini_dcdm' */
 
   /* for each target, module up to which we need to run CLASS in order
      to compute the targetted quantities (not running the whole code
@@ -556,6 +561,8 @@ int input_shooting(struct file_content * pfc,
                                         cs_background,     /* computation stage for target 'omega_dcdmdr' */
                                         cs_background,     /* computation stage for target 'Omega_scf' */
                                         cs_background,     /* computation stage for target 'Omega_ini_dcdm' */
+                                        cs_background,
+                                        cs_background,
                                         cs_background};     /* computation stage for target 'omega_ini_dcdm' */
 
   struct fzerofun_workspace fzw;
@@ -878,6 +885,10 @@ int input_needs_shooting_for_target(struct file_content * pfc,
   case Omega_scf:
   case Omega_ini_dcdm:
   case omega_ini_dcdm:
+
+  case Omega0_CMaDE_dm:
+  case Omega0_CMaDE_de:
+
     /* Check that Omega's or omega's are nonzero: */
     if (target_value == 0.)
       *needs_shooting = _FALSE_;
@@ -1164,6 +1175,9 @@ int input_get_guess(double *xguess,
   int index_guess;
   int index_ncdm; double N_nonur_guess = 0.0;
 
+  
+
+
   /* Cheat to read only known parameters: */
   pfzw->fc.size -= pfzw->target_size;
 
@@ -1264,6 +1278,50 @@ int input_get_guess(double *xguess,
       if (gamma > 100)
         dxdy[index_guess] *= gamma/100;
       break;
+
+
+
+
+
+
+
+
+
+
+//Aqui estoy usando guess que funcionan excelente en un amplio rango de parametros para el modelo CMaDE incluso en valores extremos de Omega0_CMaDE_dm y Omega0_CMaDE_de.
+//Esto no significa que no se puedan encontrar casos donde el shooting falle,
+//Por lo que sigue pendiente de implementar un metodo mas sofisticado para encontrar el guess, por ejemplo usando la solucion de atraccion del modelo CMaDE o algo asi.
+case Omega0_CMaDE_dm:
+  xguess[index_guess] = log10( 2.860751054582809e41);
+  dxdy[index_guess]   = 1e-3;
+  break;
+
+case Omega0_CMaDE_de:
+  xguess[index_guess] = log10(0.18402218346100396);
+  dxdy[index_guess]   = 1e-3;
+  break;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     case sigma8:
       /* Assume linear relationship between A_s and sigma8 and fix coefficient
@@ -1488,6 +1546,58 @@ int input_try_unknown_parameters(double * unknown_parameter,
         rho_dr_today = 0.;
       output[i] = -(rho_dcdm_today+rho_dr_today)/(ba.H0*ba.H0)+ba.Omega0_dcdmdr;
       break;
+
+
+
+
+
+case Omega0_CMaDE_dm:
+  
+double rho_cmade_dm_today;
+  rho_cmade_dm_today =
+    ba.background_table[(ba.bt_size-1)*ba.bg_size + ba.index_bg_CMaDE_rho_dm];
+
+  /* Residuo: computed - target, en el mismo estilo que omega_ini_dcdm */
+  output[i] = -(rho_cmade_dm_today)/(ba.H0*ba.H0) + pfzw->target_value[i];
+
+  //  printf("[shoot] Omega0_CMaDE_dm  calculado = %.15e  target = %.15e  residual = %.15e\n",
+  //       (rho_cmade_dm_today)/(ba.H0*ba.H0),
+  //       pfzw->target_value[i],
+  //       output[i]);
+  
+  break;
+
+case Omega0_CMaDE_de:
+  double rho_cmade_de_today;
+  rho_cmade_de_today =
+    ba.background_table[(ba.bt_size-1)*ba.bg_size + ba.index_bg_CMaDE_rho_de];
+
+  output[i] = -(rho_cmade_de_today)/(ba.H0*ba.H0) + pfzw->target_value[i];
+
+  //printf("[shoot] Omega0_CMaDE_de  calculado = %.15e  target = %.15e  residual = %.15e\n",
+  //      (rho_cmade_de_today)/(ba.H0*ba.H0),
+  //       pfzw->target_value[i],
+  //     output[i]);
+  
+  break;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     case sigma8:
       output[i] = fo.sigma8[fo.index_pk_m];
       break;
@@ -2446,14 +2556,11 @@ class_read_double("Q_coupling", pba->Q_coupling);
 if (pba->has_CMaDE == _TRUE_) {
 
 
+  class_read_double("log10_Omega_ini_CMaDE_dm", pba->log10_Omega_ini_CMaDE_dm);
+  class_read_double("log10_Omega_ini_CMaDE_de", pba->log10_Omega_ini_CMaDE_de);
 
 
 
-  class_read_double("Omega0_CMaDE_dm", pba->Omega0_CMaDE_dm);
-  class_read_double("Omega0_CMaDE_de", pba->Omega0_CMaDE_de);
-  class_read_double("Omega_ini_CMaDE_dm", pba->Omega_ini_CMaDE_dm);
-  class_read_double("Omega_ini_CMaDE_de", pba->Omega_ini_CMaDE_de);
-  
 
   pba->Omega0_cdm = 0.0;
   pba->Omega0_lambda = 0.0;
@@ -2470,6 +2577,8 @@ if (pba->has_CMaDE == _TRUE_) {
     //printf("You are using an open universe with negative curvature K = %e\n",pba->K);
   }
 
+ 
+/*
 class_test((pba->Omega_ini_CMaDE_de <= 0.0) ||
            (pba->Omega_ini_CMaDE_dm <= 0.0),
            errmsg,
@@ -2480,8 +2589,7 @@ class_test((pba->Omega_ini_CMaDE_de <= 0.0) ||
            pba->Omega_ini_CMaDE_dm, pba->Omega_ini_CMaDE_de);
 
 
-   
-/*
+  
   if((pba->Omega0_CMaDE_de <= 0.0)||(pba->Omega0_CMaDE_dm <= 0.0)||(pba->Omega_ini_CMaDE_de <= 0.0)||(pba->Omega_ini_CMaDE_dm <= 0.0 )){
     
     pba->Omega_ini_CMaDE_dm =  3.7986352766044805e41;
@@ -3374,11 +3482,12 @@ class_test((pba->Omega_ini_CMaDE_de <= 0.0) ||
   /* Test */ 
   class_test((pba->has_CMaDE == _TRUE_) &&
            ((pba->Omega0_lambda != 0.0) ||
-            (pba->Omega0_de != 0.0) ||
             (pba->Omega0_fld != 0.0)),
     errmsg,
    "No se debe definir constante cosmológica u otro tipo de energía oscura si estamos usando CMaDE. En su lugar, defina Omega0_CMaDE_de.");
     
+
+
 
   // Claudio Salas Pérez: 29/09/2025
   //Aqui es donde evitamos que se llene de manera automatica el contenido de energía oscura a menos que CMaDE esté desactivado
